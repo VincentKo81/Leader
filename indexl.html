@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 업무 대체 가능성 계산기</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+        
+        :root {
+            --primary-color: #4361ee;
+            --super-safe: #2ec4b6;
+            --safe-color: #2a9d8f;
+            --neutral-color: #ffb703;
+            --warning-color: #f8961e;
+            --danger-color: #e63946;
+            --extreme-danger: #d90429;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: background 1s ease;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 650px;
+            overflow: hidden;
+            transform: translateY(20px);
+            animation: fadeIn 0.5s ease forwards;
+            position: relative;
+            z-index: 10;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h1 {
+            color: var(--primary-color);
+            margin-bottom: 25px;
+            text-align: center;
+            font-size: 1.8rem;
+            position: relative;
+        }
+        
+        h1::after {
+            content: '';
+            display: block;
+            width: 50px;
+            height: 3px;
+            background: var(--primary-color);
+            margin: 10px auto;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        
+        h1:hover::after {
+            width: 100px;
+        }
+        
+        .input-group {
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            padding-bottom: 5px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        
+        .input-group:hover label {
+            color: var(--primary-color);
+        }
+        
+        .factor-description {
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 8px;
+            padding-left: 2px;
+            font-style: italic;
+            line-height: 1.4;
+            transition: color 0.3s ease;
+        }
+        
+        .input-group:hover .factor-description {
+            color: #444;
+        }
+        
+        .range-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            outline: none;
+            transition: background 0.3s ease;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            transition: transform 0.1s ease;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        
+        input[type="number"] {
+            width: 60px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .calculate-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(67, 97, 238, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .calculate-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(67, 97, 238, 0.4);
+        }
+        
+        .calculate-btn:active {
+            transform: translateY(1px);
+        }
+        
+        .calculate-btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.6s ease, height 0.6s ease;
+        }
+        
+        .calculate-btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+        
+        .result-container {
+            opacity: 0;
+            height: 0;
+            overflow: hidden;
+            transition: all 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        
+        .result-container.show {
+            opacity: 1;
+            height: auto;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+        
+        .result-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            text-align: center;
+            color: #333;
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            border-radius: 10px;
+            background: linear-gradient(90deg, var(--super-safe), var(--safe-color), var(--neutral-color), var(--warning-color), var(--danger-color), var(--extreme-danger));
+            transition: width 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                45deg,
+                rgba(255,255,255,0.2) 25%, 
+                transparent 25%, 
+                transparent 50%, 
+                rgba(255,255,255,0.2) 50%, 
+                rgba(255,255,255,0.2) 75%, 
+                transparent 75%, 
+                transparent
+            );
+            background-size: 15px 15px;
+            animation: progressStripes 1s linear infinite;
+            border-radius: 10px;
+        }
+        
+        @keyframes progressStripes {
+            from { background-position: 0 0; }
+            to { background-position: 15px 0; }
+        }
+        
+        .result-value {
+            font-size: 2.8rem;
+            font-weight: 700;
+            text-align: center;
+            margin: 10px 0;
+            color: var(--primary-color);
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            transition: color 0.5s ease, transform 0.5s ease;
+        }
+        
+        .result-emoji {
+            font-size: 5rem;
+            text-align: center;
+            margin: 15px 0;
+            position: relative;
+            transition: transform 0.5s ease;
+        }
+        
+        .result-interpretation {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 1.1rem;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* 감정 애니메이션 효과 */
+        .emoji-animation {
+            animation: emojiPulse 2s infinite;
+        }
+
+        @keyframes emojiPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        .emoji-shake {
+            animation: emojiShake 0.5s infinite;
+        }
+        
+        @keyframes emojiShake {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            25% { transform: translate(-5px, 0) rotate(-5deg); }
+            50% { transform: translate(5px, 0) rotate(5deg); }
+            75% { transform: translate(-5px, 0) rotate(-5deg); }
+            100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        
+        .emoji-bounce {
+            animation: emojiBounce 1s infinite;
+        }
+        
+        @keyframes emojiBounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .emoji-rotate {
+            animation: emojiRotate 3s infinite linear;
+        }
+        
+        @keyframes emojiRotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        .emoji-flip {
+            animation: emojiFlip 2s infinite;
+        }
+        
+        @keyframes emojiFlip {
+            0% { transform: perspective(400px) rotateY(0); }
+            50% { transform: perspective(400px) rotateY(180deg); }
+            100% { transform: perspective(400px) rotateY(360deg); }
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: var(--primary-color);
+            animation: confetti 5s ease-in-out forwards;
+            opacity: 0;
+            z-index: 0;
+        }
+        
+        @keyframes confetti {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(1000px) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        /* 배경 파티클 */
+        .background-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .particle {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            animation: particle-float infinite linear;
+        }
+        
+        @keyframes particle-float {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+
+        /* 불안/공포 효과 - 화면 흔들림 */
+        .screen-shake {
+            animation: screenShake 0.5s infinite;
+        }
+        
+        @keyframes screenShake {
+            0% { transform: translate(0, 0); }
+            25% { transform: translate(-5px, -5px); }
+            50% { transform: translate(5px, 5px); }
+            75% { transform: translate(-5px, 5px); }
+            100% { transform: translate(0, 0); }
+        }
+        
+        /* 로봇 애니메이션 */
+        .robot-container {
+            text-align: center;
+            margin: 20px 0;
+            height: 0;
+            overflow: hidden;
+            transition: height 0.5s ease;
+        }
+        
+        .robot-container.show {
+            height: 200px;
+        }
+        
+        .robot {
+            font-size: 100px;
+            display: inline-block;
+            position: relative;
+        }
+        
+        .robot-eyes {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .robot-eye {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: red;
+            border-radius: 50%;
+            top: -60px;
+            animation: robotEyeScan 2s infinite alternate;
+        }
+        
+        .robot-eye.left {
+            left: -15px;
+        }
+        
+        .robot-eye.right {
+            right: -15px;
+        }
+        
+        @keyframes robotEyeScan {
+            0% { background: red; box-shadow: 0 0 5px red; }
+            50% { background: orange; box-shadow: 0 0 10px orange; }
+            100% { background: red; box-shadow: 0 0 5px red; }
+        }
+        
+        /* 축하 효과 */
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .firework {
+            position: absolute;
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            animation: firework 2s ease-out forwards;
+            opacity: 0;
+        }
+        
+        @keyframes firework {
+            0% {
+                transform: translateY(100vh) scale(0.1);
+                opacity: 0;
+            }
+            50% {
+                opacity: 1;
+            }
+            75% {
+                transform: translate(calc(var(--x) * 1vw), calc(var(--y) * 1vh)) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(calc(var(--x) * 1vw), calc(var(--y) * 1vh)) scale(0);
+                opacity: 0;
+            }
+        }
+        
+        /* 불안 효과 */
+        .anxiety-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0) 0%, rgba(0,0,0,0.6) 100%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease;
+            z-index: 1;
+        }
+        
+        /* 툴팁 스타일 */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+            margin-left: 5px;
+            cursor: help;
+        }
+        
+        .tooltip i {
+            color: var(--primary-color);
+            font-size: 0.85rem;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 220px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 100;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+        }
+        
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* 반응형 스타일 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 1.5rem;
+            }
+            
+            .result-emoji {
+                font-size: 4rem;
+            }
+            
+            .tooltip .tooltip-text {
+                width: 180px;
+                font-size: 0.75rem;
+            }
+        }
+
+        /* 슬라이더 위치 표시기 */
+        .slider-highlight {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(67, 97, 238, 0.1);
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            transition: all 0.3s ease;
+            z-index: 5;
+            opacity: 0;
+        }
+        
+        input[type="range"]:active + .slider-highlight {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="background-particles" id="background-particles"></div>
+    <div class="celebration" id="celebration"></div>
+    <div class="anxiety-effect" id="anxiety-effect"></div>
+    
+    <div class="container" id="main-container">
+        <h1>AI 업무 대체 가능성 계산기</h1>
+        
+        <div class="input-group">
+            <label for="rt">RT (Routine Tasks) - 반복적 작업 비율 (0-100%)</label>
+            <div class="factor-description">업무 중 규칙적이고 패턴화된 작업의 비중.</div>
+            <div class="range-container">
+                <input type="range" id="rt" min="0" max="100" value="70" step="5">
+                <input type="number" id="rt-value" min="0" max="100" value="70">
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label for="cr">CR (Creative Intelligence) - 창의적 문제해결 능력 (0-10)</label>
+            <div class="factor-description">새로운 아이디어와 혁신적 사고가 필요한 정도.</div>
+            <div class="range-container">
+                <input type="range" id="cr" min="0" max="10" value="5">
+                <input type="number" id="cr-value" min="0" max="10" value="5">
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label for="sr">SR (Social Intelligence) - 사회적 상호작용 능력 (0-10)</label>
+            <div class="factor-description">인간 관계, 공감 능력, 감정적 교류가 필요한 업무 정도.</div>
+            <div class="range-container">
+                <input type="range" id="sr" min="0" max="10" value="5">
+                <input type="number" id="sr-value" min="0" max="10" value="5">
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label for="pr">PR (Physical Requirements) - 물리적 조작 필요성 (0-10)</label>
+            <div class="factor-description">복잡한 신체 움직임과 정교한 물리적 조작이 필요한 정도.</div>
+            <div class="range-container">
+                <input type="range" id="pr" min="0" max="10" value="2">
+                <input type="number" id="pr-value" min="0" max="10" value="2">
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label for="dc">DC (Data Complexity) - 데이터 복잡성 (0-10)</label>
+            <div class="factor-description">비정형 데이터 처리 및 복잡한 맥락 이해가 필요한 정도.</div>
+            <div class="range-container">
+                <input type="range" id="dc" min="0" max="10" value="3">
+                <input type="number" id="dc-value" min="0" max="10" value="3">
+            </div>
+        </div>
+        
+        <div class="input-group">
+            <label for="da">DA (Decision Autonomy) - 의사결정 자율성 (0-10)</label>
+            <div class="factor-description">독립적 판단과 높은 수준의 책임이 요구되는 정도.</div>
+            <div class="range-container">
+                <input type="range" id="da" min="0" max="10" value="4">
+                <input type="number" id="da-value" min="0" max="10" value="4">
+            </div>
+        </div>
+        
+        <button class="calculate-btn" onclick="calculateARP()">AI 대체 가능성 계산하기</button>
+        
+        <div class="result-container" id="result-container">
+            <div class="result-title">당신의 직업 AI 대체 가능성은</div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+            </div>
+            <div class="result-value" id="result-value">0%</div>
+            <div class="result-emoji" id="result-emoji"></div>
+            <div class="robot-container" id="robot-container">
+                <div class="robot" id="robot">
+                    🤖
+                    <div class="robot-eyes">
+                        <div class="robot-eye left"></div>
+                        <div class="robot-eye right"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="result-interpretation" id="result-interpretation"></div>
+        </div>
+    </div>
+
+    <script>
+        // 페이지 로드 시 모든 슬라이더와 입력 필드 초기화 및 이벤트 리스너 등록
+        document.addEventListener('DOMContentLoaded', function() {
+            // 모든 입력 요소에 이벤트 리스너 등록
+            setupInputListeners('rt');
+            setupInputListeners('cr');
+            setupInputListeners('sr');
+            setupInputListeners('pr');
+            setupInputListeners('dc');
+            setupInputListeners('da');
+            
+            // 배경 파티클 생성
+            createBackgroundParticles();
+        });
+        
+        // 입력 요소에 이벤트 리스너 설정
+        function setupInputListeners(id) {
+            const slider = document.getElementById(id);
+            const input = document.getElementById(id + '-value');
+            
+            // 슬라이더 변경 시 입력 필드 업데이트
+            slider.addEventListener('input', function() {
+                input.value = slider.value;
+            });
+            
+            // 입력 필드 변경 시 슬라이더 업데이트
+            input.addEventListener('input', function() {
+                // 입력값이 범위를 벗어나지 않도록 제한
+                let value = parseFloat(input.value);
+                
+                // 최소값과 최대값 설정
+                const min = parseFloat(slider.min);
+                const max = parseFloat(slider.max);
+                
+                // 숫자가 아닌 경우 기본값 설정
+                if (isNaN(value)) {
+                    value = id === 'rt' ? 70 : 5;
+                }
+                
+                // 범위 제한
+                if (value < min) value = min;
+                if (value > max) value = max;
+                
+                // RT 항목인 경우 5 단위로 반올림
+                if (id === 'rt') {
+                    value = Math.round(value / 5) * 5;
+                }
+                
+                // 입력 필드에 제한된 값 설정
+                input.value = value;
+                
+                // 슬라이더 값 업데이트
+                slider.value = value;
+            });
+            
+            // RT 항목의 경우 입력 필드의 blur 이벤트 처리 (포커스를 잃을 때)
+            if (id === 'rt') {
+                input.addEventListener('blur', function() {
+                    let value = parseFloat(input.value);
+                    if (!isNaN(value)) {
+                        // 5 단위로 반올림
+                        value = Math.round(value / 5) * 5;
+                        input.value = value;
+                        slider.value = value;
+                    }
+                });
+            }
+        }
+        
+        // 배경 파티클 생성
+        function createBackgroundParticles() {
+            const container = document.getElementById('background-particles');
+            
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                
+                const size = Math.random() * 10 + 5;
+                const posX = Math.random() * 100;
+                const duration = Math.random() * 30 + 20; // 20-50초
+                const delay = Math.random() * 10;
+                
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                particle.style.left = posX + '%';
+                particle.style.bottom = -size + 'px';
+                particle.style.animationDuration = duration + 's';
+                particle.style.animationDelay = delay + 's';
+                
+                container.appendChild(particle);
+            }
+        }
+
+        // 숫자 카운팅 애니메이션
+        function animateValue(element, start, end, duration) {
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                const value = Math.floor(progress * (end - start) + start);
+                element.innerHTML = value + '%';
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+        
+        // 축하 효과 생성
+        function createCelebrationEffect() {
+            const container = document.getElementById('celebration');
+            const colors = ['#00b4d8', '#0077b6', '#90e0ef', '#caf0f8', '#48cae4'];
+            
+            for (let i = 0; i < 30; i++) {
+                setTimeout(() => {
+                    const firework = document.createElement('div');
+                    firework.className = 'firework';
+                    
+                    // 발사 위치 (화면 하단 랜덤)
+                    const startX = Math.random() * 100;
+                    
+                    // 폭발 목적지 (x, y 변수)
+                    const x = Math.random() * 100 - 50;
+                    const y = Math.random() * -70 - 10;
+                    
+                    firework.style.left = startX + '%';
+                    firework.style.bottom = '0';
+                    firework.style.setProperty('--x', x);
+                    firework.style.setProperty('--y', y);
+                    firework.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    
+                    container.appendChild(firework);
+                    
+                    // 애니메이션 종료 후 제거
+                    setTimeout(() => {
+                        firework.remove();
+                    }, 2000);
+                }, i * 200);
+            }
+        }
+        
+        // 불안 효과 생성
+        function createAnxietyEffect(intensity) {
+            const anxietyEffect = document.getElementById('anxiety-effect');
+            anxietyEffect.style.opacity = intensity;
+            
+            if (intensity > 0.3) {
+                document.getElementById('main-container').classList.add('screen-shake');
+                setTimeout(() => {
+                    document.getElementById('main-container').classList.remove('screen-shake');
+                }, 3000);
+            }
+        }
+        
+        // 컨페티 효과 생성
+        function createConfetti() {
+            const container = document.querySelector('.container');
+            const colors = ['#4361ee', '#3a0ca3', '#f72585', '#4cc9f0', '#fb5607'];
+            
+            for (let i = 0; i < 70; i++) {
+                setTimeout(() => {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.left = Math.random() * 100 + '%';
+                    confetti.style.top = -10 + 'px';
+                    confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.width = Math.random() * 15 + 5 + 'px';
+                    confetti.style.height = Math.random() * 15 + 5 + 'px';
+                    confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+                    confetti.style.animationDelay = Math.random() * 3 + 's';
+                    confetti.style.animationDuration = Math.random() * 3 + 2 + 's';
+                    
+                    container.appendChild(confetti);
+                    
+                    // 애니메이션 종료 후 제거
+                    setTimeout(() => {
+                        confetti.remove();
+                    }, 5000);
+                }, i * 50);
+            }
+        }
+        
+        // 로봇 효과 표시
+        function showRobotEffect(show) {
+            const robotContainer = document.getElementById('robot-container');
+            if (show) {
+                robotContainer.classList.add('show');
+            } else {
+                robotContainer.classList.remove('show');
+            }
+        }
+        
+        // 색상 설정 함수
+        function setColorTheme(arp) {
+            const body = document.body;
+            const resultValue = document.getElementById('result-value');
+            
+            if (arp < 20) {
+                resultValue.style.color = 'var(--super-safe)';
+                body.style.background = 'linear-gradient(135deg, #d8f3dc 0%, #95d5b2 100%)';
+            } else if (arp < 40) {
+                resultValue.style.color = 'var(--safe-color)';
+                body.style.background = 'linear-gradient(135deg, #caffbf 0%, #9bf6ff 100%)';
+            } else if (arp < 60) {
+                resultValue.style.color = 'var(--neutral-color)';
+                body.style.background = 'linear-gradient(135deg, #fdffb6 0%, #ffd6a5 100%)';
+            } else if (arp < 80) {
+                resultValue.style.color = 'var(--warning-color)';
+                body.style.background = 'linear-gradient(135deg, #ffadad 0%, #ffc6ff 100%)';
+            } else {
+                resultValue.style.color = 'var(--extreme-danger)';
+                body.style.background = 'linear-gradient(135deg, #ff5c5c 0%, #ff8fab 100%)';
+            }
+        }
+        
+        // AI 대체 가능성 계산
+        function calculateARP() {
+            // 입력값 가져오기
+            const rt = parseFloat(document.getElementById('rt').value);
+            const cr = parseFloat(document.getElementById('cr').value);
+            const sr = parseFloat(document.getElementById('sr').value);
+            const pr = parseFloat(document.getElementById('pr').value);
+            const dc = parseFloat(document.getElementById('dc').value);
+            const da = parseFloat(document.getElementById('da').value);
+            
+            // 입력값 검증
+            if (isNaN(rt) || isNaN(cr) || isNaN(sr) || isNaN(pr) || isNaN(dc) || isNaN(da)) {
+                alert('모든 필드에 유효한 숫자를 입력해주세요.');
+                return;
+            }
+            
+            // ARP 계산
+            const arp = (rt / 100) * (1 - (cr + sr + 1.5 * pr + 0.8 * dc + da) / 53) * 100;
+            const arpRounded = parseFloat(arp.toFixed(1));
+            
+            // 결과 컨테이너 표시
+            const resultContainer = document.getElementById('result-container');
+            resultContainer.classList.add('show');
+            
+            // 프로그레스 바 애니메이션
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = '0%';
+            setTimeout(() => {
+                progressBar.style.width = arpRounded + '%';
+            }, 100);
+            
+            // 결과값 애니메이션
+            const resultValue = document.getElementById('result-value');
+            animateValue(resultValue, 0, arpRounded, 1500);
+            
+            // 색상 테마 설정
+            setColorTheme(arpRounded);
+            
+            // 결과에 따른 이모티콘, 애니메이션, 해석 설정
+            const resultEmoji = document.getElementById('result-emoji');
+            const resultInterpretation = document.getElementById('result-interpretation');
+            
+            // 이전 애니메이션 클래스 제거
+            resultEmoji.className = 'result-emoji';
+            
+            // 로봇 효과 초기화
+            showRobotEffect(false);
+            
+            // 불안 효과 초기화
+            createAnxietyEffect(0);
+            
+            if (arpRounded < 20) {
+                // 매우 안전 (매우 기쁨)
+                resultEmoji.innerHTML = '😄';
+                resultEmoji.classList.add('emoji-bounce');
+                resultInterpretation.innerHTML = '<strong>축하합니다!</strong> 당신의 직업은 AI가 대체하기 매우 어렵습니다. 인간 특유의 창의성과 사회적 상호작용 능력이 중요한 직업이군요. 앞으로도 안정적인 커리어를 이어갈 수 있을 것입니다.';
+                createCelebrationEffect();
+            } else if (arpRounded < 40) {
+                // 안전 (기쁨)
+                resultEmoji.innerHTML = '😊';
+                resultEmoji.classList.add('emoji-animation');
+                resultInterpretation.innerHTML = '<strong>꽤 안전합니다.</strong> AI가 당신의 직업을 완전히 대체하기는 어려워 보입니다. 하지만 일부 반복적인 업무는 자동화될 가능성이 있으니, 더 복잡한 문제해결 능력을 기르는 것이 좋겠습니다.';
+            } else if (arpRounded < 60) {
+                // 중간 (걱정)
+                resultEmoji.innerHTML = '😐';
+                resultEmoji.classList.add('emoji-pulse');
+                resultInterpretation.innerHTML = '<strong>주의가 필요합니다.</strong> 당신의 업무 중 상당 부분이 AI에 의해 자동화될 가능성이 있습니다. 지금부터 AI가 대체하기 어려운 창의적, 사회적 역량을 강화하고 새로운 기술을 습득하는 것이 좋겠습니다.';
+                createAnxietyEffect(0.2);
+            } else if (arpRounded < 80) {
+                // 위험 (두려움)
+                resultEmoji.innerHTML = '😨';
+                resultEmoji.classList.add('emoji-shake');
+                resultInterpretation.innerHTML = '<strong>위험 수준입니다!</strong> 당신의 직업은 AI에 의해 상당 부분 대체될 가능성이 높습니다. 지금부터 직무 전환을 고려하거나, AI와 협업할 수 있는 역량을 키우세요. 미래를 위한 준비가 필요한 시점입니다.';
+                createAnxietyEffect(0.4);
+                showRobotEffect(true);
+            } else {
+                // 매우 위험 (공포)
+                resultEmoji.innerHTML = '😱';
+                resultEmoji.classList.add('emoji-shake');
+                resultInterpretation.innerHTML = '<strong>매우 심각합니다!</strong> 당신의 직업은 가까운 미래에 AI에 의해 완전히 대체될 가능성이 매우 높습니다. 지금 당장 새로운 직무나 직업으로의 전환을 준비하세요. AI와 함께 일하는 방법을 배우거나, AI가 대체하기 어려운 분야로 이동하는 것이 시급합니다.';
+                createConfetti();
+                createAnxietyEffect(0.6);
+                showRobotEffect(true);
+                
+                // 화면 흔들림 효과
+                document.getElementById('main-container').classList.add('screen-shake');
+                setTimeout(() => {
+                    document.getElementById('main-container').classList.remove('screen-shake');
+                }, 3000);
+            }
+            
+            // 결과 영역으로 스크롤
+            resultContainer.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
